@@ -102,10 +102,64 @@ app.post("/api/edit", (req, res, next) => {
 // ポイント付与
 app.post("/api/add", (req, res, next) => {
   console.log("api/add");
-  var card_id = req.body.postCardId;
   var qr = req.body.postQr;
   var user_id = req.body.postUesrId;
-  console.log(card_id);
   console.log(qr);
   console.log(user_id);
+  var point_after;
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+    } else {
+      var card_id;
+      var slct = "SELECT card_id FROM cards WHERE qr = $1";
+      await client.query(slct, [qr], (err, result) =>  {
+        if (err) {
+          console.log(err);
+        } else {
+          card_id = result.rows[0].card_id;
+          console.log(card_id);
+        }
+        // return card_id;
+
+        slct = "SELECT point_sum FROM points WHERE fk_card_id = $1 AND fk_user_id = $2";
+        client.query(slct, [card_id, user_id], (err, result) => {
+          if (err) {
+            console.log(err);
+          } else {
+            console.log(result.rows);
+            var rslt = result.rows[0].point_sum;
+            console.log(rslt);
+            point_after = rslt + 1;
+            console.log(point_after);
+          }
+          return point_after;
+        });
+        return point_after;
+      });
+      // slct = "SELECT point_sum FROM points WHERE fk_card_id = $1 AND fk_user_id = $2";
+      // await client.query(slct, [card_id, user_id], (err, result) => {
+      //   if (err) {
+      //     console.log(err);
+      //   } else {
+      //     console.log(result.rows);
+      //     var rslt = result.rows[0].point_sum;
+      //     console.log(rslt);
+      //     point_after = rslt + 1;
+      //     console.log(point_after);
+      //   }
+      //   return point_after;
+      // });
+      var updt = "UPDATE points SET point_sum = $1";
+      await client.query(updt, [point_after], (err, result) => {
+        if (err) {
+          console.log(err);
+        }
+      });
+    }
+    return point_after;
+  });
+  res.json({
+    point: point_after
+  });
 });
