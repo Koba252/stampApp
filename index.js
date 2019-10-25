@@ -53,8 +53,9 @@ app.post("/api/create", (req, res, next) => {
           }
         });
 
+        var new_card_id = prvs_card_id + 1;
         insrt = "INSERT INTO admin (fk_card_id, fk_user_id) VALUES ($1, $2)";
-        client.query(insrt, [prvs_card_id, user_id], (err) => {
+        client.query(insrt, [new_card_id, user_id], (err) => {
           if (err) {
             console.log(err);
           }
@@ -63,7 +64,8 @@ app.post("/api/create", (req, res, next) => {
         res.json({
           cardName: card_name,
           cardInfo: card_info,
-          cardUrl : url_num
+          cardUrl : url_num,
+          cardId: new_card_id
         }); 
       });
     }
@@ -96,7 +98,8 @@ app.post("/api/edit", (req, res, next) => {
         } else {
           res.json({
             cardName: result.rows[0].card_name,
-            cardInfo: result.rows[0].card_info
+            cardInfo: result.rows[0].card_info,
+            cardId: card_id
           });
         }
       });
