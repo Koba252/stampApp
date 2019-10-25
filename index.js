@@ -121,8 +121,7 @@ app.post("/api/add", (req, res, next) => {
     } else {
       var card_id;
       
-      var slct = "SELECT card_id FROM cards WHERE url_num = $1";
-      client.query(slct, [url_num], (err, result) =>  {
+      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], (err, result) =>  {
         if (err) {
           console.log(err);
         } else {
@@ -130,29 +129,58 @@ app.post("/api/add", (req, res, next) => {
           console.log(card_id);
         }
 
-        slct = "SELECT point_sum FROM points WHERE fk_card_id = $1 AND fk_user_id = $2";
-        client.query(slct, [card_id, user_id], (err, result) => {
+        client.query("SELECT fk_user_id FROM possessions WHERE fk_card_id = $1", [card_id], (err, result) => {
           if (err) {
             console.log(err);
           } else {
             console.log(result.rows);
-            var rslt = result.rows[0].point_sum;
-            console.log(rslt);
-            point_after = rslt + 1;
-            console.log(point_after);
+            var chck = 0;
+            for (var i = 0; i < result.rows.length; i ++) {
+              if (result.rows[i].fk_user_id == user_id) {
+                chck = 1;
+                break;
+              }
+            }
+            console.log(chck);
+            if (chck == 0) {
+              client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 0], (err) => {
+                if (err) {
+                  console.log(err);
+                } else {
+                  console.log("OK");
+                  adding();
+                }
+              });
+            } else {
+              adding();
+            }
           }
-
-          var updt = "UPDATE points SET point_sum = $1 WHERE fk_card_id = $2 AND fk_user_id = $3";
-          client.query(updt, [point_after, card_id, user_id], (err, result) => {
+        });
+        var adding = () => {
+          slct = "SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2";
+          client.query(slct, [card_id, user_id], (err, result) => {
             if (err) {
               console.log(err);
             } else {
-              res.json({
-                point: point_after
-              });
+              console.log(result.rows);
+              var rslt = result.rows[0].point;
+              console.log(rslt);
+              point_after = rslt + 1;
+              console.log(point_after);
             }
+
+            var updt = "UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3";
+            client.query(updt, [point_after, card_id, user_id], (err) => {
+              if (err) {
+                console.log(err);
+              } else {
+                res.json({
+                  point: point_after
+                });
+              }
+            });
           });
-        });
+        }
       });
     }
   });
