@@ -10,11 +10,15 @@ const server = app.listen(3000, () => {
 });
 
 // 接続テスト
-app.post("/api/test", (req, res, next) => {
-  res.setHeader('Content-Type', 'text/plain');
+app.get("/api/test", (req, res) => {
+  console.log("/api/test");
+  console.log("GET TEST");
+  res.json({data: "hello get world"});
+});
+app.post("/api/test", (req, res) => {
   console.log("/api/test");
   console.log(req.body.postData);
-  res.json({"Hello": "World"});
+  res.json({data: req.body.postData});
 });
 
 // カード作成
