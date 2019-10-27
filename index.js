@@ -1,12 +1,14 @@
 const express = require("express");
 const app = express();
 const db = require("./db/dbinfo");
+require('dotenv').config();
+const port = process.env.ENV_PORT;
 
 app.use(express.json()); //いらないかも
 app.use(express.urlencoded({ extended: true }));
 
-const server = app.listen(3000, () => {
-  console.log("Start sever port: 3000");
+const server = app.listen(port, () => {
+  console.log("Start sever port: ${port}");
 });
 
 // 接続テスト
