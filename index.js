@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const db = require("./db/dbinfo");
 require('dotenv').config();
-const port = process.env.ENV_PORT;
+const port = process.env.ENV_PORT || 5000;
 
 app.use(express.json()); //いらないかも
 app.use(express.urlencoded({ extended: true }));
