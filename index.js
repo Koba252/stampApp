@@ -116,7 +116,7 @@ app.post("/api/edit", (req, res, next) => {
 app.post("/api/add", (req, res, next) => {
   console.log("api/add");
   var url_num = req.body.postUrlNum;
-  var user_id = req.body.postUesrId;
+  var user_id = req.body.postUserId;
   console.log(url_num);
   console.log(user_id);
   db.pool.connect( async (err, client) => {
