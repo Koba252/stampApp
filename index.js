@@ -132,7 +132,7 @@ app.post("/api/add", (req, res, next) => {
       var card_id;
       
       //カードID取得
-      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], async (err, result) =>  {
+      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], (err, result) =>  {
         if (err) {
           console.log(err);
         } else {
@@ -158,45 +158,37 @@ app.post("/api/add", (req, res, next) => {
           return chck;
         });
 
+        //所持別にポイント付与
         if (chck == 0) {
-          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 0], async (err) => {
+          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 1], async (err) => {
             if (err) {
               console.log(err);
-            } else {
-              console.log("OK");
-              await adding();
             }
           });
+          res.json({
+            point: 1,
+            cardId: card_id
+          });
         } else {
-          await adding();
-        }
-
-        //ポイント付与
-        var adding = () => {
-          slct = "SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2";
-          client.query(slct, [card_id, user_id], (err, result) => {
-            if (err) {
+          client.query("SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2", [card_id, user_id], (err, result) => {
+            if(err){
               console.log(err);
             } else {
               console.log(result.rows);
-              var rslt = result.rows[0].point;
-              console.log(rslt);
-              point_after = rslt + 1;
-              console.log(point_after);
+              point_after = result.rows[0].point + 1;
             }
-
-            var updt = "UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3";
-            client.query(updt, [point_after, card_id, user_id], (err) => {
-              if (err) {
-                console.log(err);
-              }
-            });
+            return point_after;
+          });
+          client.query("UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3", [point_after, card_id, user_id], async (err, result) => {
+            if (err) {
+              console.log(err);
+            }
+          });
+          res.json({
+            point: point_after,
+            cardId: card_id
           });
         }
-
-        res.json({
-          point: point_after
-        });
       });
     }
   });
