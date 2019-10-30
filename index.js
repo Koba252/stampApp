@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const db = require("./db/dbinfo");
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3000;
 
 app.use(express.json()); //いらないかも
 app.use(express.urlencoded({ extended: true }));
@@ -33,12 +33,12 @@ app.post("/api/create", (req, res, next) => {
   console.log(card_info);
   console.log(user_id);
   console.log(url_num);
-  db.pool.connect( async (err, client) => {
+  db.pool.connect( (err, client) => {
     if (err) {
       console.log(err);
     } else {
       var slct = "SELECT MAX(card_id) FROM cards";
-      client.query(slct, (err, result) => {
+      client.query(slct, async (err, result) => {
         var prvs_card_id;
         if (err) {
           console.log(err);
@@ -52,15 +52,15 @@ app.post("/api/create", (req, res, next) => {
         }
         
         var insrt = "INSERT INTO cards (card_name, card_info, url_num) VALUES ($1, $2, $3)";
-        client.query(insrt, [card_name, card_info, url_num], (err, result) => {
+        await client.query(insrt, [card_name, card_info, url_num], (err, result) => {
           if (err) {
             console.log(err);
           }
         });
 
-        var new_card_id = prvs_card_id + 1;
+         var new_card_id = prvs_card_id + 1;
         insrt = "INSERT INTO admin (fk_card_id, fk_user_id) VALUES ($1, $2)";
-        client.query(insrt, [new_card_id, user_id], (err) => {
+        await client.query(insrt, [new_card_id, user_id], (err) => {
           if (err) {
             console.log(err);
           }
@@ -86,27 +86,32 @@ app.post("/api/edit", (req, res, next) => {
   console.log(card_id);
   console.log(card_name);
   console.log(card_info);
-  db.pool.connect( async (err, client) => {
+  db.pool.connect( (err, client) => {
     if (err) {
       console.log(err);
     } else {
       var updt = "UPDATE cards SET card_name = $1, card_info = $2 WHERE card_id = $3";
-      client.query(updt, [card_name, card_info, card_id], (err, result) => {
+      client.query(updt, [card_name, card_info, card_id], async (err, result) => {
         if (err) {
           console.log(err);
         }
       });
-      var slct = "SELECT card_name, card_info FROM cards WHERE card_id = $1";
-      client.query(slct, [card_id], (err, result) => {
-        if (err) {
-          console.log(err);
-        } else {
-          res.json({
-            cardName: result.rows[0].card_name,
-            cardInfo: result.rows[0].card_info,
-            cardId: card_id
-          });
-        }
+      // var slct = "SELECT card_name, card_info FROM cards WHERE card_id = $1";
+      // client.query(slct, [card_id], (err, result) => {
+      //   if (err) {
+      //     console.log(err);
+      //   } else {
+      //     res.json({
+      //       cardName: result.rows[0].card_name,
+      //       cardInfo: result.rows[0].card_info,
+      //       cardId: card_id
+      //     });
+      //   }
+      // });
+      res.json({
+        cardName: card_name,
+        cardInfo: card_info,
+        cardId: card_id
       });
     }
   });
@@ -119,14 +124,15 @@ app.post("/api/add", (req, res, next) => {
   var user_id = req.body.postUserId;
   console.log(url_num);
   console.log(user_id);
-  db.pool.connect( async (err, client) => {
+  db.pool.connect( (err, client) => {
     var point_after = 0;
     if (err) {
       console.log(err);
     } else {
       var card_id;
       
-      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], (err, result) =>  {
+      //カードID取得
+      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], async (err, result) =>  {
         if (err) {
           console.log(err);
         } else {
@@ -134,12 +140,13 @@ app.post("/api/add", (req, res, next) => {
           console.log(card_id);
         }
 
+        //ユーザーがそのカードを所持しているか
+        var chck = 0;
         client.query("SELECT fk_user_id FROM possessions WHERE fk_card_id = $1", [card_id], (err, result) => {
           if (err) {
             console.log(err);
           } else {
             console.log(result.rows);
-            var chck = 0;
             for (var i = 0; i < result.rows.length; i ++) {
               if (result.rows[i].fk_user_id == user_id) {
                 chck = 1;
@@ -147,20 +154,24 @@ app.post("/api/add", (req, res, next) => {
               }
             }
             console.log(chck);
-            if (chck == 0) {
-              client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 0], (err) => {
-                if (err) {
-                  console.log(err);
-                } else {
-                  console.log("OK");
-                  adding();
-                }
-              });
-            } else {
-              adding();
-            }
           }
+          return chck;
         });
+
+        if (chck == 0) {
+          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 0], async (err) => {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log("OK");
+              await adding();
+            }
+          });
+        } else {
+          await adding();
+        }
+
+        //ポイント付与
         var adding = () => {
           slct = "SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2";
           client.query(slct, [card_id, user_id], (err, result) => {
@@ -178,14 +189,14 @@ app.post("/api/add", (req, res, next) => {
             client.query(updt, [point_after, card_id, user_id], (err) => {
               if (err) {
                 console.log(err);
-              } else {
-                res.json({
-                  point: point_after
-                });
               }
             });
           });
         }
+
+        res.json({
+          point: point_after
+        });
       });
     }
   });
