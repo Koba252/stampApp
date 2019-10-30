@@ -33,45 +33,40 @@ app.post("/api/create", (req, res, next) => {
   console.log(card_info);
   console.log(user_id);
   console.log(url_num);
-  db.pool.connect( (err, client) => {
+  db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
     } else {
-      var slct = "SELECT MAX(card_id) FROM cards";
-      client.query(slct, async (err, result) => {
-        var prvs_card_id;
-        if (err) {
-          console.log(err);
-        } else {
-          console.log(result.rows);
-          prvs_card_id = result.rows[0].max;
-          console.log(prvs_card_id);
-          url_num = "" + prvs_card_id + url_num + prvs_card_id;
-          Number(url_num);
-          console.log(url_num);
-        }
-        
-        var insrt = "INSERT INTO cards (card_name, card_info, url_num) VALUES ($1, $2, $3)";
-        await client.query(insrt, [card_name, card_info, url_num], (err, result) => {
-          if (err) {
-            console.log(err);
-          }
-        });
+      var prvs_card_id;
+      try {
+        var result = await client.query("SELECT MAX(card_id) FROM cards");
+        console.log(result.rows);
+        prvs_card_id = result.rows[0].max;
+        url_num = "" + prvs_card_id + url_num + prvs_card_id;
+        Number(url_num);
+        console.log(url_num);
+      } catch (err) {
+        console.log(err.stack);
+      }
 
-         var new_card_id = prvs_card_id + 1;
-        insrt = "INSERT INTO admin (fk_card_id, fk_user_id) VALUES ($1, $2)";
-        await client.query(insrt, [new_card_id, user_id], (err) => {
-          if (err) {
-            console.log(err);
-          }
-        });
+      try {
+        client.query("INSERT INTO cards (card_name, card_info, url_num) VALUES ($1, $2, $3)", [card_name, card_info, url_num]);
+      } catch (err) {
+        console.log(err.stack);
+      }
 
-        res.json({
-          cardName: card_name,
-          cardInfo: card_info,
-          cardUrl : url_num,
-          cardId: new_card_id
-        }); 
+      var new_card_id = prvs_card_id + 1;
+      try {
+        client.query("INSERT INTO admin (fk_card_id, fk_user_id) VALUES ($1, $2)", [new_card_id, user_id]);
+      } catch (err) {
+        console.log(err.stack);
+      }
+      
+      res.json({
+        cardName: card_name,
+        cardInfo: card_info,
+        cardUrl : url_num,
+        cardId: new_card_id
       });
     }
   });
@@ -86,28 +81,15 @@ app.post("/api/edit", (req, res, next) => {
   console.log(card_id);
   console.log(card_name);
   console.log(card_info);
-  db.pool.connect( (err, client) => {
+  db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
     } else {
-      var updt = "UPDATE cards SET card_name = $1, card_info = $2 WHERE card_id = $3";
-      client.query(updt, [card_name, card_info, card_id], async (err, result) => {
-        if (err) {
-          console.log(err);
-        }
-      });
-      // var slct = "SELECT card_name, card_info FROM cards WHERE card_id = $1";
-      // client.query(slct, [card_id], (err, result) => {
-      //   if (err) {
-      //     console.log(err);
-      //   } else {
-      //     res.json({
-      //       cardName: result.rows[0].card_name,
-      //       cardInfo: result.rows[0].card_info,
-      //       cardId: card_id
-      //     });
-      //   }
-      // });
+      try {
+        client.query("UPDATE cards SET card_name = $1, card_info = $2 WHERE card_id = $3", [card_name, card_info, card_id]);
+      } catch (err) {
+        console.log(err.stack);
+      }
       res.json({
         cardName: card_name,
         cardInfo: card_info,
@@ -125,7 +107,6 @@ app.post("/api/add", (req, res, next) => {
   console.log(url_num);
   console.log(user_id);
   db.pool.connect( async (err, client) => {
-    // var point_after = 0;
     if (err) {
       console.log(err);
     } else {
