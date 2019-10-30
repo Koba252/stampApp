@@ -124,72 +124,68 @@ app.post("/api/add", (req, res, next) => {
   var user_id = req.body.postUserId;
   console.log(url_num);
   console.log(user_id);
-  db.pool.connect( (err, client) => {
-    var point_after = 0;
+  db.pool.connect( async (err, client) => {
+    // var point_after = 0;
     if (err) {
       console.log(err);
     } else {
-      var card_id;
-      
       //カードID取得
-      client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num], (err, result) =>  {
-        if (err) {
-          console.log(err);
-        } else {
-          card_id = result.rows[0].card_id;
-          console.log(card_id);
-        }
+      var card_id;
+      try {
+        var result = await client.query("SELECT card_id FROM cards WHERE url_num = $1", [url_num]);
+        console.log(result.rows);
+        card_id = result.rows[0].card_id;
+      } catch (err) {
+        console.log(err.stack);
+      }
 
-        //ユーザーがそのカードを所持しているか
-        var chck = 0;
-        client.query("SELECT fk_user_id FROM possessions WHERE fk_card_id = $1", [card_id], (err, result) => {
-          if (err) {
-            console.log(err);
-          } else {
-            console.log(result.rows);
-            for (var i = 0; i < result.rows.length; i ++) {
-              if (result.rows[i].fk_user_id == user_id) {
-                chck = 1;
-                break;
-              }
-            }
-            console.log(chck);
+      //ユーザーがそのカードを所持しているか
+      var chck = 0;
+      try {
+        var result = await client.query("SELECT fk_user_id FROM possessions WHERE fk_card_id = $1", [card_id]);
+        console.log(result.rows);
+        for (var i = 0; i < result.rows.length; i ++) {
+          if (result.rows[i].fk_user_id == user_id) {
+            chck = 1;
+            break;
           }
           return chck;
-        });
-
-        //所持別にポイント付与
-        if (chck == 0) {
-          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 1], async (err) => {
-            if (err) {
-              console.log(err);
-            }
-          });
-          res.json({
-            point: 1,
-            cardId: card_id
-          });
-        } else {
-          client.query("SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2", [card_id, user_id], (err, result) => {
-            if(err){
-              console.log(err);
-            } else {
-              console.log(result.rows);
-              point_after = result.rows[0].point + 1;
-            }
-            return point_after;
-          });
-          client.query("UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3", [point_after, card_id, user_id], async (err, result) => {
-            if (err) {
-              console.log(err);
-            }
-          });
-          res.json({
-            point: point_after,
-            cardId: card_id
-          });
         }
-      });
+      } catch (err) {
+        console.log(err.stack);
+      }
+
+      //所持別にポイント付与
+      if (chck == 0) {
+        try {
+          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 1]);
+        } catch (err) {
+          console.log(err.stack);
+        }
+        console.log("get new card!");
+        res.json({
+          point: 1,
+          cardId: card_id
+        });
+      } else {
+        var point_after = 0;
+        try {
+          var result = await client.query("SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2", [card_id, user_id]);
+          console.log(result.rows);
+          point_after = result.rows[0].point + 1;
+        } catch (err) {
+          console.log(err.stack);
+        }
+        try {
+          client.query("UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3", [point_after, card_id, user_id]);
+        } catch (err) {
+          console.log(err.stack);
+        }
+        res.json({
+          point: point_after,
+          cardId: card_id
+        });
+      }
     }
   });
 });
