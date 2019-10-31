@@ -22,6 +22,51 @@ app.post("/api/test", (req, res) => {
   res.json({data: req.body.postData});
 });
 
+// カード一覧
+app.post("/api/list", (req, res) => {
+  console.log("api/list");
+  var user_id = req.body.postUserId;
+  console.log(user_id);
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+    } else {
+      var card_ary;
+      try {
+        var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
+        console.log(result.rows);
+        card_ary = result.rows;
+      } catch (err) {
+        console.log(err.stack);
+      }
+
+      if (card_ary != null){
+        var slct = "card_id =" + card_ary[0].fk_card_id;
+        for (var i = 1; i < card_ary.length; i++) {
+          slct += " OR card_id = " + card_ary[i].fk_card_id;
+        }
+        try {
+          var result = await client.query("SELECT card_name, card_info FROM cards WHERE " + slct);
+          console.log(result.rows);
+          for (var i = 0; i < card_ary.length; i++) {
+            card_ary[i].card_name = result.rows[i].card_name;
+            card_ary[i].card_info = result.rows[i].card_info;
+          }
+        } catch (err) {
+          console.log(err.stack);
+        }
+        res.json({
+          cardAry: card_ary
+        });
+      } else {
+        res.json({
+          msg: "none"
+        });
+      }
+    }
+  });
+});
+
 // カード作成
 app.post("/api/create", (req, res, next) => {
   console.log("api/create");
