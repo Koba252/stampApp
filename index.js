@@ -129,7 +129,8 @@ app.post("/api/create", (req, res, next) => {
           msg: "Fail to insert data"
         });
       }
-      
+      url_num = String(url_num);
+      new_card_id = String(new_card_id);
       res.json({
         cardName: card_name,
         cardInfo: card_info,
@@ -164,6 +165,7 @@ app.post("/api/edit", (req, res, next) => {
           msg: "Fail to update data"
         });
       }
+      card_id = String(card_id);
       res.json({
         cardName: card_name,
         cardInfo: card_info,
@@ -254,6 +256,8 @@ app.post("/api/add", (req, res, next) => {
             msg: "Fail to update data"
           });
         }
+        point_after = String(point_after);
+        card_id = String(card_id);
         res.json({
           point: point_after,
           cardId: card_id
