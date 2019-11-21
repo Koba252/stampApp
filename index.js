@@ -51,6 +51,8 @@ app.post("/api/list", (req, res) => {
           for (var i = 0; i < card_ary.length; i++) {
             card_ary[i].card_name = result.rows[i].card_name;
             card_ary[i].card_info = result.rows[i].card_info;
+            card_ary[i].fk_card_id = String(card_ary[i].fk_card_id);
+            card_ary[i].point = String(card_ary[i].point);
           }
         } catch (err) {
           console.log(err.stack);
