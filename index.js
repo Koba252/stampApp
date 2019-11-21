@@ -56,7 +56,7 @@ app.post("/api/list", (req, res) => {
           console.log(err.stack);
         }
         res.json({
-          card_ary
+          cardAry: card_ary
         });
       } else {
         res.json({
