@@ -30,6 +30,9 @@ app.post("/api/list", (req, res) => {
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
     } else {
       var card_ary;
       try {
@@ -38,6 +41,9 @@ app.post("/api/list", (req, res) => {
         card_ary = result.rows;
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail get data"
+        });
       }
 
       if (card_ary != null){
@@ -56,13 +62,16 @@ app.post("/api/list", (req, res) => {
           }
         } catch (err) {
           console.log(err.stack);
+          res.json({
+            msg: "Fail to get data"
+          });
         }
         res.json({
           cardAry: card_ary
         });
       } else {
         res.json({
-          msg: "none"
+          msg: "The user has no card"
         });
       }
     }
@@ -83,6 +92,9 @@ app.post("/api/create", (req, res, next) => {
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
     } else {
       var prvs_card_id;
       try {
@@ -94,12 +106,18 @@ app.post("/api/create", (req, res, next) => {
         console.log(url_num);
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to get data"
+        });
       }
 
       try {
         client.query("INSERT INTO cards (card_name, card_info, url_num) VALUES ($1, $2, $3)", [card_name, card_info, url_num]);
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to insert data"
+        });
       }
 
       var new_card_id = prvs_card_id + 1;
@@ -107,6 +125,9 @@ app.post("/api/create", (req, res, next) => {
         client.query("INSERT INTO admin (fk_card_id, fk_user_id) VALUES ($1, $2)", [new_card_id, user_id]);
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to insert data"
+        });
       }
       
       res.json({
@@ -131,11 +152,17 @@ app.post("/api/edit", (req, res, next) => {
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
     } else {
       try {
         client.query("UPDATE cards SET card_name = $1, card_info = $2 WHERE card_id = $3", [card_name, card_info, card_id]);
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to update data"
+        });
       }
       res.json({
         cardName: card_name,
@@ -156,6 +183,9 @@ app.post("/api/add", (req, res, next) => {
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
     } else {
       //カードID取得
       var card_id;
@@ -165,6 +195,9 @@ app.post("/api/add", (req, res, next) => {
         card_id = result.rows[0].card_id;
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to get data"
+        });
       }
 
       //ユーザーがそのカードを所持しているか
@@ -181,6 +214,9 @@ app.post("/api/add", (req, res, next) => {
         }
       } catch (err) {
         console.log(err.stack);
+        res.json({
+          msg: "Fail to get data"
+        });
       }
 
       //所持別にポイント付与
@@ -189,6 +225,9 @@ app.post("/api/add", (req, res, next) => {
           client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 1]);
         } catch (err) {
           console.log(err.stack);
+          res.json({
+            msg: "Fail to insert data"
+          });
         }
         console.log("get new card!");
         res.json({
@@ -203,11 +242,17 @@ app.post("/api/add", (req, res, next) => {
           point_after = result.rows[0].point + 1;
         } catch (err) {
           console.log(err.stack);
+          res.json({
+            msg: "Fail to get data"
+          });
         }
         try {
           client.query("UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3", [point_after, card_id, user_id]);
         } catch (err) {
           console.log(err.stack);
+          res.json({
+            msg: "Fail to update data"
+          });
         }
         res.json({
           point: point_after,
