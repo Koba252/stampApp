@@ -81,10 +81,16 @@ apiRoutes.use((req, res, next) => {
 
 apiRoutes.get("/test2", (req, res) => {
   console.log("/api/test2");
+  var token = req.body.token;
+  console.log(token);
+  var decoded = jwt.decode(token, {complete: true});
+  console.log(decoded.payload);
   res.json({
     msg: "Hello authenticated world"
   });
 });
+
+
 
 app.use("/api", apiRoutes);
 
