@@ -40,7 +40,7 @@ db.pool.connect(async (err, client) => {
 
 // トークン発行
 apiRoutes.post("/authenticate", (req, res) => {
-  console.log("/api/authenticate");
+  console.log("/api2/authenticate");
   console.log(users);
   var post_user_id = req.body.userId;
   var post_user_pass = req.body.userPass;
@@ -79,10 +79,9 @@ apiRoutes.use((req, res, next) => {
   });
 });
 
-apiRoutes.get("/test2", (req, res) => {
-  console.log("/api/test2");
+apiRoutes.get("/test", (req, res) => {
+  console.log("/api2/test");
   var token = req.body.token;
-  console.log(token);
   var decoded = jwt.decode(token, {complete: true});
   console.log(decoded.payload);
   res.json({
@@ -90,9 +89,65 @@ apiRoutes.get("/test2", (req, res) => {
   });
 });
 
+apiRoutes.post("/list", (req, res) => {
+  console.log("/api2/list");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      var card_ary;
+      try {
+        var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
+        console.log(result.rows);
+        card_ary = result.rows;
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail get data"
+        });
+      }
 
+      if (card_ary != null){
+        var slct = "card_id =" + card_ary[0].fk_card_id;
+        for (var i = 1; i < card_ary.length; i++) {
+          slct += " OR card_id = " + card_ary[i].fk_card_id;
+        }
+        try {
+          var result = await client.query("SELECT name, img, uplim, info FROM cards WHERE " + slct);
+          console.log(result.rows);
+          for (var i = 0; i < card_ary.length; i++) {
+            card_ary[i].name = result.rows[i].name;
+            card_ary[i].img = String(result.rows[i].img);
+            card_ary[i].uplim = String(result.rows[i].uplim);
+            card_ary[i].info = result.rows[i].info;
+            card_ary[i].fk_card_id = String(card_ary[i].fk_card_id);
+            card_ary[i].point = String(card_ary[i].point);
+          }
+        } catch (err) {
+          console.log(err.stack);
+          res.json({
+            msg: "Fail to get data"
+          });
+        }
+        res.json({
+          cardAry: card_ary
+        });
+      } else {
+        res.json({
+          msg: "The user has no card"
+        });
+      }
+    }
+  });
+});
 
-app.use("/api", apiRoutes);
+app.use("/api2", apiRoutes);
 
 // 接続テスト
 app.get("/api/test", (req, res) => {
