@@ -1,14 +1,92 @@
 const express = require("express");
 const app = express();
 const db = require("./db/dbinfo");
+require('dotenv').config();
 const port = process.env.PORT || 3000;
+const jwt = require("jsonwebtoken");
 
-app.use(express.json()); //いらないかも
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.listen(port, () => {
   console.log("Start sever port: " + port);
 });
+
+app.set("superSecret", process.env.ENV_SSECRET);
+var apiRoutes = express.Router();
+
+// ユーザーID取得
+var users;
+db.pool.connect(async (err, client) => {
+  if (err) {
+    console.log(err);
+    res.json({
+      msg: "Fail to connect to database"
+    });
+  } else {
+    try {
+      var result = await client.query("SELECT id, pass FROM users");
+      console.log(result.rows);
+      users = result.rows;
+      return users;
+    } catch(err) {
+      console.log(err.stack);
+      res.json({
+        msg: "Fail to get user id"
+      });
+    }
+  }
+});
+
+// トークン発行
+apiRoutes.post("/authenticate", (req, res) => {
+  console.log("/api/authenticate");
+  console.log(users);
+  var post_user_id = req.body.userId;
+  var post_user_pass = req.body.userPass;
+  for (var i = 0; i < users.length; i++) {
+    if (post_user_id == users[i].id && post_user_pass == users[i].pass) {
+      var user_id = String(post_user_id);
+      var token = jwt.sign(user_id, app.get("superSecret"));
+      return res.json({
+        msg: "Authentication success",
+        token: token
+      });
+    }
+  }
+  res.json({
+    msg: "Invalid ID or Password",
+  });
+});
+
+// 認証チェック
+apiRoutes.use((req, res, next) => {
+  var token = req.body.token;
+  if (!token) {
+    res.json({
+      msg: "No token provided"
+    });
+  }
+  jwt.verify(token, app.get("superSecret"), (err, decoded) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Invalid token"
+      });
+    }
+    req.decoded;
+    next();
+  });
+});
+
+apiRoutes.get("/test2", (req, res) => {
+  console.log("/api/test2");
+  res.json({
+    msg: "Hello authenticated world"
+  });
+});
+
+app.use("/api", apiRoutes);
 
 // 接続テスト
 app.get("/api/test", (req, res) => {
