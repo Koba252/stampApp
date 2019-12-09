@@ -109,14 +109,14 @@ apiRoutes.post("/list", (req, res) => {
       } catch (err) {
         console.log(err.stack);
         res.json({
-          msg: "Fail get data"
+          msg: "Fail to get possessions data"
         });
       }
 
-      if (card_ary != null){
-        var slct = "card_id =" + card_ary[0].fk_card_id;
+      if (card_ary[0] != null && card_ary[0] != undefined){
+        var slct = "id =" + card_ary[0].fk_card_id;
         for (var i = 1; i < card_ary.length; i++) {
-          slct += " OR card_id = " + card_ary[i].fk_card_id;
+          slct += " OR id = " + card_ary[i].fk_card_id;
         }
         try {
           var result = await client.query("SELECT name, img, uplim, info FROM cards WHERE " + slct);
@@ -132,7 +132,7 @@ apiRoutes.post("/list", (req, res) => {
         } catch (err) {
           console.log(err.stack);
           res.json({
-            msg: "Fail to get data"
+            msg: "Fail to get cards data"
           });
         }
         res.json({
