@@ -17,27 +17,27 @@ app.set("superSecret", process.env.ENV_SSECRET);
 var apiRoutes = express.Router();
 
 // ユーザーID取得
-var users;
-db.pool.connect(async (err, client) => {
-  if (err) {
-    console.log(err);
-    res.json({
-      msg: "Fail to connect to database"
-    });
-  } else {
-    try {
-      var result = await client.query("SELECT id, pass FROM users");
-      console.log(result.rows);
-      users = result.rows;
-      return users;
-    } catch(err) {
-      console.log(err.stack);
-      res.json({
-        msg: "Fail to get user id"
-      });
-    }
-  }
-});
+// var users;
+// db.pool.connect(async (err, client) => {
+//   if (err) {
+//     console.log(err);
+//     res.json({
+//       msg: "Fail to connect to database"
+//     });
+//   } else {
+//     try {
+//       var result = await client.query("SELECT id, pass FROM users");
+//       console.log(result.rows);
+//       users = result.rows;
+//       return users;
+//     } catch(err) {
+//       console.log(err.stack);
+//       res.json({
+//         msg: "Fail to get user id"
+//       });
+//     }
+//   }
+// });
 
 // ユーザー登録
 app.post("/api/register", [
@@ -98,21 +98,40 @@ app.post("/api/register", [
 // トークン発行
 apiRoutes.post("/authenticate", (req, res) => {
   console.log("/api2/authenticate");
-  console.log(users);
-  var post_user_id = req.body.userId;
-  var post_user_pass = req.body.userPass;
-  for (var i = 0; i < users.length; i++) {
-    if (post_user_id == users[i].id && post_user_pass == users[i].pass) {
-      var user_id = String(post_user_id);
-      var token = jwt.sign(user_id, app.get("superSecret"));
-      return res.json({
-        msg: "Authentication success",
-        token: token
+  db.pool.connect(async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      var users;
+      try {
+        var result = await client.query("SELECT id, pass FROM users");
+        console.log(result.rows);
+        users = result.rows;
+      } catch(err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to get user id"
+        });
+      }
+      var post_user_id = req.body.userId;
+      var post_user_pass = req.body.userPass;
+      for (var i = 0; i < users.length; i++) {
+        if (post_user_id == users[i].id && post_user_pass == users[i].pass) {
+          var user_id = String(post_user_id);
+          var token = jwt.sign(user_id, app.get("superSecret"));
+          return res.json({
+            msg: "Authentication success",
+            token: token
+          });
+        }
+      }
+      res.json({
+        msg: "Invalid user id or password",
       });
     }
-  }
-  res.json({
-    msg: "Invalid user id or password",
   });
 });
 
