@@ -53,8 +53,8 @@ app.post("/api/register", [
       msg: "Invalid user id or password"
     });
   }
-  var post_user_id = req.body.userId;
-  var post_user_pass = req.body.userPass;
+  var post_user_id = req.body.postUserId;
+  var post_user_pass = req.body.postUserPass;
   db.pool.connect( async (err, client) =>{
     if (err) {
       console.log(err);
@@ -116,8 +116,8 @@ apiRoutes.post("/authenticate", (req, res) => {
           msg: "Fail to get user id"
         });
       }
-      var post_user_id = req.body.userId;
-      var post_user_pass = req.body.userPass;
+      var post_user_id = req.body.postUserId;
+      var post_user_pass = req.body.postUserPass;
       for (var i = 0; i < users.length; i++) {
         if (post_user_id == users[i].id && post_user_pass == users[i].pass) {
           var user_id = String(post_user_id);
@@ -155,6 +155,7 @@ apiRoutes.use((req, res, next) => {
   });
 });
 
+// 認証後の接続確認
 apiRoutes.get("/test", (req, res) => {
   console.log("/api2/test");
   var token = req.body.token;
@@ -165,6 +166,7 @@ apiRoutes.get("/test", (req, res) => {
   });
 });
 
+// 所持カード一覧取得
 apiRoutes.post("/list", (req, res) => {
   console.log("/api2/list");
   var token = req.body.token;
@@ -219,6 +221,73 @@ apiRoutes.post("/list", (req, res) => {
           msg: "The user has no card"
         });
       }
+    }
+  });
+});
+
+// 作成
+apiRoutes.post("/create", (req, res, next) => {
+  console.log("/api2/create");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  var card_name = req.body.postCardName;
+  var card_img = req.body.postCardImg;
+  var card_info = req.body.postCardInfo;
+  var card_url = Math.round(Math.random() * 10000);
+  console.log(user_id);
+  console.log(card_name);
+  console.log(card_img);
+  console.log(card_info);
+  console.log(card_url);
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      var prvs_card_id;
+      try {
+        var result = await client.query("SELECT MAX(id) FROM cards");
+        console.log(result.rows);
+        prvs_card_id = result.rows[0].max;
+        card_url = "" + prvs_card_id + card_url + prvs_card_id;
+        Number(card_url);
+        console.log(card_url);
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to get card id"
+        });
+      }
+
+      try {
+        client.query("INSERT INTO cards (name, img, info, url) VALUES ($1, $2, $3, $4)", [card_name, card_img, card_info, card_url]);
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to insert data"
+        });
+      }
+
+      var new_card_id = prvs_card_id + 1;
+      try {
+        client.query("INSERT INTO admins (fk_user_id, fk_card_id) VALUES ($1, $2)", [user_id, new_card_id]);
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to insert data"
+        });
+      }
+      card_url = String(card_url);
+      new_card_id = String(new_card_id);
+      res.json({
+        cardName: card_name,
+        cardInfo: card_info,
+        cardUrl : card_url,
+        cardId: new_card_id
+      });
     }
   });
 });
