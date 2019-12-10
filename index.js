@@ -18,10 +18,10 @@ var apiRoutes = express.Router();
 
 // ユーザー登録
 app.post("/api/register", [
-  check('userId').isAlphanumeric(),
-  check('userId').isLength({max: 8}),
-  check('userPass').isAlphanumeric(),
-  check('userPass').isLength({min: 8, max: 8})
+  check('postUserId').isAlphanumeric(),
+  check('postUserId').isLength({max: 8}),
+  check('postUserPass').isAlphanumeric(),
+  check('postUserPass').isLength({min: 8, max: 8})
 ],(req, res) => {
   console.log("/api/register");
   if (!validationResult(req).isEmpty()) {
@@ -30,8 +30,10 @@ app.post("/api/register", [
       msg: "Invalid user id or password"
     });
   }
-  var post_user_id = req.body.postUserId;
-  var post_user_pass = req.body.postUserPass;
+  var users = {
+    id: req.body.postUserId,
+    pass: req.body.postUserId
+  }
   db.pool.connect( async (err, client) =>{
     if (err) {
       console.log(err);
@@ -41,12 +43,15 @@ app.post("/api/register", [
     } else {
       try {
         var result = await client.query("SELECT id FROM users");
-        for (var i = 0; i < result.rows.length; i++) {
-          if (result.rows[i].id == post_user_id) {
-            return res.json({
-              msg: "This user id is already used"
-            });
-          }
+        console.log(result.rows);
+        var target = result.rows.find((item) => {
+          return (item.id === users.id);
+        });
+        console.log(target);
+        if (target != undefined) {
+          return res.json({
+            msg: "This user id is already used"
+          });
         }
       } catch(err) {
         console.log(err.stack);
@@ -55,14 +60,14 @@ app.post("/api/register", [
         });
       }
       try {
-        client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [post_user_id, post_user_pass]);
+        client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [users.id, users.pass]);
       } catch(err) {
         console.log(err.stack);
         res.json({
           msg: "Fail to add user data"
         });
       }
-      var user_id = String(post_user_id);
+      var user_id = String(users.id);
       var token = jwt.sign(user_id, app.get("superSecret"));
       return res.json({
         msg: "Registration success",
