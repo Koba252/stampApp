@@ -217,15 +217,15 @@ apiRoutes.post("/create", (req, res, next) => {
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
-  var card_name = req.body.postCardName;
-  var card_img = req.body.postCardImg;
-  var card_info = req.body.postCardInfo;
   var card_url = Math.round(Math.random() * 10000);
+  var cards = {
+    name: req.body.postCardName,
+    img: req.body.postCardImg,
+    info: req.body.postCardInfo,
+    url: card_url
+  }
   console.log(user_id);
-  console.log(card_name);
-  console.log(card_img);
-  console.log(card_info);
-  console.log(card_url);
+  console.log(cards);
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
@@ -238,18 +238,18 @@ apiRoutes.post("/create", (req, res, next) => {
         var result = await client.query("SELECT MAX(id) FROM cards");
         console.log(result.rows);
         prvs_card_id = result.rows[0].max;
-        card_url = "" + prvs_card_id + card_url + prvs_card_id;
-        Number(card_url);
-        console.log(card_url);
+        cards.url = "" + prvs_card_id + cards.url + prvs_card_id;
+        Number(cards.url);
+        console.log(cards.url);
       } catch (err) {
         console.log(err.stack);
-        res.json({
+        return res.json({
           msg: "Fail to get card id"
         });
       }
 
       try {
-        client.query("INSERT INTO cards (name, img, info, url) VALUES ($1, $2, $3, $4)", [card_name, card_img, card_info, card_url]);
+        client.query("INSERT INTO cards (name, img, info, url) VALUES ($1, $2, $3, $4)", [cards.name, cards.img, cards.info, cards.url]);
       } catch (err) {
         console.log(err.stack);
         res.json({
@@ -266,13 +266,13 @@ apiRoutes.post("/create", (req, res, next) => {
           msg: "Fail to insert data"
         });
       }
-      card_url = String(card_url);
+      cards.url = String(cards.url);
       new_card_id = String(new_card_id);
       res.json({
-        cardName: card_name,
-        cardImg: card_img,
-        cardInfo: card_info,
-        cardUrl : card_url,
+        cardName: cards.name,
+        cardImg: cards.img,
+        cardInfo: cards.info,
+        cardUrl : cards.url,
         cardId: new_card_id
       });
     }
