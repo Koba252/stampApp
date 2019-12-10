@@ -225,6 +225,8 @@ apiRoutes.post("/list", (req, res) => {
   });
 });
 
+// 作成カード一覧取得
+
 // 作成
 apiRoutes.post("/create", (req, res, next) => {
   console.log("/api2/create");
@@ -284,6 +286,7 @@ apiRoutes.post("/create", (req, res, next) => {
       new_card_id = String(new_card_id);
       res.json({
         cardName: card_name,
+        cardImg: card_img,
         cardInfo: card_info,
         cardUrl : card_url,
         cardId: new_card_id
@@ -291,6 +294,67 @@ apiRoutes.post("/create", (req, res, next) => {
     }
   });
 });
+
+// 編集
+apiRoutes.post("/edit", (req, res, next) => {
+  console.log("/api2/edit");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  var card_id = req.body.postCardId;
+  var card_name = req.body.postCardName;
+  var card_img = req.body.postCardImg;
+  var card_info = req.body.postCardInfo;
+  console.log(user_id);
+  console.log(card_id);
+  console.log(card_name);
+  console.log(card_img);
+  console.log(card_info);
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      try {
+        var result = await client.query("SELECT fk_user_id FROM admins WHERE fk_card_id = $1", [card_id]);
+        console.log(result.rows);
+        var target = result.rows.find((item) => {
+          return (item.fk_user_id === user_id)
+        });
+        console.log(target);
+        if (target == undefined) {
+          return res.json({
+            msg: "This user do not have control of this card"
+          });
+        }
+      } catch(err) {
+        console.log(err.stack);
+        return res.json({
+          msg: "Fail to get admins data"
+        });
+      }
+      try {
+        client.query("UPDATE cards SET name = $1, img = $2, info = $3 WHERE id = $4", [card_name, card_img, card_info, card_id]);
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to update data"
+        });
+      }
+      card_id = String(card_id);
+      res.json({
+        cardName: card_name,
+        cardImg: card_img,
+        cardInfo: card_info,
+        cardId: card_id
+      });
+    }
+  });
+});
+
+// ポイント付与
 
 app.use("/api2", apiRoutes);
 
