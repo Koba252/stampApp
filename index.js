@@ -339,6 +339,84 @@ apiRoutes.post("/edit", (req, res, next) => {
 });
 
 // ポイント付与
+apiRoutes.post("/add", (req, res, next) => {
+  console.log("api2/add");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  var url_num = req.body.postUrlNum;
+  console.log(user_id);
+  console.log(url_num);
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      var card_id;
+      try {
+        var result = await client.query("SELECT id FROM cards WHERE url = $1", [url_num]);
+        console.log(result.rows);
+        card_id = result.rows[0].id;
+      } catch (err) {
+        console.log(err.stack);
+        return res.json({
+          msg: "Fail to get cards data"
+        });
+      }
+      //ユーザーがそのカードを所持しているか
+      var target;
+      try {
+        var result = await client.query("SELECT fk_card_id FROM possessions WHERE fk_user_id = $1", [user_id]);
+        console.log(result.rows);
+        target = result.rows.find((item) => {
+          return (item.fk_card_id === card_id);
+        });
+      } catch (err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to get possessions data"
+        });
+      }
+      if (target == undefined) {
+        try {
+          client.query("INSERT INTO possessions (fk_user_id, fk_card_id, point) VALUES ($1, $2, $3)", [user_id, card_id, 1]);
+        } catch (err) {
+          console.log(err.stack);
+        }
+        card_id = String(card_id);
+        res.json({
+          point: "1",
+          cardId: card_id
+        });
+      } else {
+        var point_after = 0;
+        try {
+          var result = await client.query("SELECT point FROM possessions WHERE fk_card_id = $1 AND fk_user_id = $2", [card_id, user_id]);
+          console.log(result.rows);
+          point_after = result.rows[0].point + 1;
+        } catch (err) {
+          console.log(err.stack);
+          return res.json({
+            msg: "Fail to get possessions data"
+          });
+        }
+        try {
+          client.query("UPDATE possessions SET point = $1 WHERE fk_card_id = $2 AND fk_user_id = $3", [point_after, card_id, user_id]);
+        } catch (err) {
+          console.log(err.stack);
+        }
+        point_after = String(point_after);
+        card_id = String(card_id);
+        res.json({
+          point: point_after,
+          cardId: card_id
+        });
+      }
+    }
+  });
+});
 
 app.use("/api2", apiRoutes);
 
