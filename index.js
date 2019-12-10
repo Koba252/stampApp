@@ -181,12 +181,11 @@ apiRoutes.post("/list", (req, res) => {
           slct += " OR id = " + card_ary[i].fk_card_id;
         }
         try {
-          var result = await client.query("SELECT name, img, uplim, info FROM cards WHERE " + slct);
+          var result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
           console.log(result.rows);
           for (var i = 0; i < card_ary.length; i++) {
             card_ary[i].name = result.rows[i].name;
             card_ary[i].img = String(result.rows[i].img);
-            card_ary[i].uplim = String(result.rows[i].uplim);
             card_ary[i].info = result.rows[i].info;
             card_ary[i].fk_card_id = String(card_ary[i].fk_card_id);
             card_ary[i].point = String(card_ary[i].point);
@@ -210,6 +209,63 @@ apiRoutes.post("/list", (req, res) => {
 });
 
 // 作成カード一覧取得
+apiRoutes.post("/works", (req, res) => {
+  console.log("/api2/works");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  console.log(user_id);
+  db.pool.connect( async (err, client) => {
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      var created_cards = [];
+      try {
+        var result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1", [user_id]);
+        if (result.rows[0] == null) {
+          return res.json({
+            msg: "This user has no created card"
+          });
+        }
+        for (var i = 0; i < result.rows.length; i++) {
+          // created_cards[i].id = String(result.rows[i].fk_card_id);
+          created_cards.push({id: String(result.rows[i].fk_card_id)});
+        }
+      } catch (err) {
+        console.log(err.stack);
+        return res.json({
+          msg: "Fail to get admins data"
+        });
+      }
+      console.log(created_cards);
+      var slct = "id =" + created_cards[0].id;
+      for (var i = 1; i < created_cards.length; i++) {
+        slct += " OR id = " + created_cards[i].id;
+      }
+      try {
+        var result = await client.query("SELECT name, img, info, url FROM cards WHERE " + slct);
+        for (var i = 0; i < result.rows.length; i++) {
+          created_cards[i].name = result.rows[i].name;
+          created_cards[i].img = String(result.rows[i].img);
+          created_cards[i].info = result.rows[i].info;
+          created_cards[i].url = String(result.rows[i].url);
+        }
+      } catch (err) {
+        console.log(err.stack);
+        return res.json({
+          msg: "Fail to get cards data"
+        });
+      }
+      console.log(created_cards);
+      res.json({
+        createdCards: created_cards
+      });
+    }
+  });
+});
 
 // 作成
 apiRoutes.post("/create", (req, res, next) => {
