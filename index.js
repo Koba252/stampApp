@@ -79,7 +79,7 @@ app.post("/api/register", [
 
 // トークン発行
 apiRoutes.post("/authenticate", (req, res) => {
-  console.log("/api2/authenticate");
+  console.log("/api/authenticate");
   db.pool.connect(async (err, client) => {
     if (err) {
       console.log(err);
@@ -141,7 +141,7 @@ apiRoutes.use((req, res, next) => {
 
 // 認証後の接続確認
 apiRoutes.get("/test", (req, res) => {
-  console.log("/api2/test");
+  console.log("/api/test");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   console.log(decoded.payload);
@@ -152,7 +152,7 @@ apiRoutes.get("/test", (req, res) => {
 
 // 所持カード一覧取得
 apiRoutes.post("/list", (req, res) => {
-  console.log("/api2/list");
+  console.log("/api/list");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
@@ -210,7 +210,7 @@ apiRoutes.post("/list", (req, res) => {
 
 // 作成カード一覧取得
 apiRoutes.post("/works", (req, res) => {
-  console.log("/api2/works");
+  console.log("/api/works");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
@@ -269,7 +269,7 @@ apiRoutes.post("/works", (req, res) => {
 
 // 作成
 apiRoutes.post("/create", (req, res, next) => {
-  console.log("/api2/create");
+  console.log("/api/create");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
@@ -337,7 +337,7 @@ apiRoutes.post("/create", (req, res, next) => {
 
 // 編集
 apiRoutes.post("/edit", (req, res, next) => {
-  console.log("/api2/edit");
+  console.log("/api/edit");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
@@ -396,7 +396,7 @@ apiRoutes.post("/edit", (req, res, next) => {
 
 // ポイント付与
 apiRoutes.post("/add", (req, res, next) => {
-  console.log("api2/add");
+  console.log("api/add");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
