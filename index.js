@@ -474,4 +474,4 @@ apiRoutes.post("/add", (req, res, next) => {
   });
 });
 
-app.use("/api2", apiRoutes);
+app.use("/api", apiRoutes);
