@@ -4,7 +4,7 @@ const db = require("./db/dbinfo");
 require('dotenv').config();
 const port = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
-const {check, validationResult} = require("express-validator/check");
+const {check, validationResult} = require("express-validator");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -15,29 +15,6 @@ app.listen(port, () => {
 
 app.set("superSecret", process.env.ENV_SSECRET);
 var apiRoutes = express.Router();
-
-// ユーザーID取得
-// var users;
-// db.pool.connect(async (err, client) => {
-//   if (err) {
-//     console.log(err);
-//     res.json({
-//       msg: "Fail to connect to database"
-//     });
-//   } else {
-//     try {
-//       var result = await client.query("SELECT id, pass FROM users");
-//       console.log(result.rows);
-//       users = result.rows;
-//       return users;
-//     } catch(err) {
-//       console.log(err.stack);
-//       res.json({
-//         msg: "Fail to get user id"
-//       });
-//     }
-//   }
-// });
 
 // ユーザー登録
 app.post("/api/register", [
@@ -146,7 +123,7 @@ apiRoutes.use((req, res, next) => {
   jwt.verify(token, app.get("superSecret"), (err, decoded) => {
     if (err) {
       console.log(err);
-      res.json({
+      return res.json({
         msg: "Invalid token"
       });
     }
@@ -301,15 +278,14 @@ apiRoutes.post("/edit", (req, res, next) => {
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
-  var card_id = req.body.postCardId;
-  var card_name = req.body.postCardName;
-  var card_img = req.body.postCardImg;
-  var card_info = req.body.postCardInfo;
+  var cards = {
+    id: req.body.postCardId,
+    name: req.body.postCardName,
+    img: req.body.postCardImg,
+    info: req.body.postCardInfo
+  }
   console.log(user_id);
-  console.log(card_id);
-  console.log(card_name);
-  console.log(card_img);
-  console.log(card_info);
+  console.log(cards);
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
@@ -318,7 +294,7 @@ apiRoutes.post("/edit", (req, res, next) => {
       });
     } else {
       try {
-        var result = await client.query("SELECT fk_user_id FROM admins WHERE fk_card_id = $1", [card_id]);
+        var result = await client.query("SELECT fk_user_id FROM admins WHERE fk_card_id = $1", [cards.id]);
         console.log(result.rows);
         var target = result.rows.find((item) => {
           return (item.fk_user_id === user_id)
@@ -336,19 +312,20 @@ apiRoutes.post("/edit", (req, res, next) => {
         });
       }
       try {
-        client.query("UPDATE cards SET name = $1, img = $2, info = $3 WHERE id = $4", [card_name, card_img, card_info, card_id]);
+        client.query("UPDATE cards SET name = $1, img = $2, info = $3 WHERE id = $4", [cards.name, cards.img, cards.info, cards.id]);
       } catch (err) {
         console.log(err.stack);
         res.json({
           msg: "Fail to update data"
         });
       }
-      card_id = String(card_id);
+      cards.id = String(cards.id);
+      cards.img = String(cards.img);
       res.json({
-        cardName: card_name,
-        cardImg: card_img,
-        cardInfo: card_info,
-        cardId: card_id
+        cardId: cards.id,
+        cardName: cards.name,
+        cardImg: cards.img,
+        cardInfo: cards.info
       });
     }
   });
