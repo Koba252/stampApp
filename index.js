@@ -4,6 +4,7 @@ const db = require("./db/dbinfo");
 require('dotenv').config();
 const port = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
+const {check, validationResult} = require("express-validator/check");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -38,6 +39,62 @@ db.pool.connect(async (err, client) => {
   }
 });
 
+// ユーザー登録
+app.post("/api/register", [
+  check('userId').isAlphanumeric(),
+  check('userId').isLength({max: 8}),
+  check('userPass').isAlphanumeric(),
+  check('userPass').isLength({min: 8, max: 8})
+],(req, res) => {
+  console.log("/api/register");
+  if (!validationResult(req).isEmpty()) {
+    console.log(validationResult(req).array());
+    return res.status(422).json({
+      msg: "Invalid user id or password"
+    });
+  }
+  var post_user_id = req.body.userId;
+  var post_user_pass = req.body.userPass;
+  db.pool.connect( async (err, client) =>{
+    if (err) {
+      console.log(err);
+      res.json({
+        msg: "Fail to connect to database"
+      });
+    } else {
+      try {
+        var result = await client.query("SELECT id FROM users");
+        for (var i = 0; i < result.rows.length; i++) {
+          if (result.rows[i].id == post_user_id) {
+            return res.json({
+              msg: "This user id is already used"
+            });
+          }
+        }
+      } catch(err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to get user id"
+        });
+      }
+      try {
+        client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [post_user_id, post_user_pass]);
+      } catch(err) {
+        console.log(err.stack);
+        res.json({
+          msg: "Fail to add user data"
+        });
+      }
+      var user_id = String(post_user_id);
+      var token = jwt.sign(user_id, app.get("superSecret"));
+      return res.json({
+        msg: "Registration success",
+        token: token
+      });
+    }
+  });
+});
+
 // トークン発行
 apiRoutes.post("/authenticate", (req, res) => {
   console.log("/api2/authenticate");
@@ -55,7 +112,7 @@ apiRoutes.post("/authenticate", (req, res) => {
     }
   }
   res.json({
-    msg: "Invalid ID or Password",
+    msg: "Invalid user id or password",
   });
 });
 
@@ -148,6 +205,8 @@ apiRoutes.post("/list", (req, res) => {
 });
 
 app.use("/api2", apiRoutes);
+
+
 
 // 接続テスト
 app.get("/api/test", (req, res) => {
