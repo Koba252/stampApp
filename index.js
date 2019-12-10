@@ -32,7 +32,7 @@ app.post("/api/register", [
   }
   var users = {
     id: req.body.postUserId,
-    pass: req.body.postUserId
+    pass: req.body.postUserPass
   }
   db.pool.connect( async (err, client) =>{
     if (err) {
@@ -87,22 +87,24 @@ apiRoutes.post("/authenticate", (req, res) => {
         msg: "Fail to connect to database"
       });
     } else {
-      var users;
+      var users_list;
       try {
         var result = await client.query("SELECT id, pass FROM users");
         console.log(result.rows);
-        users = result.rows;
+        users_list = result.rows;
       } catch(err) {
         console.log(err.stack);
         res.json({
           msg: "Fail to get user id"
         });
       }
-      var post_user_id = req.body.postUserId;
-      var post_user_pass = req.body.postUserPass;
-      for (var i = 0; i < users.length; i++) {
-        if (post_user_id == users[i].id && post_user_pass == users[i].pass) {
-          var user_id = String(post_user_id);
+      var users = {
+        id: req.body.postUserId,
+        pass: req.body.postUserPass
+      }
+      for (var i = 0; i < users_list.length; i++) {
+        if (users.id == users_list[i].id && users.pass == users_list[i].pass) {
+          var user_id = String(users.id);
           var token = jwt.sign(user_id, app.get("superSecret"));
           return res.json({
             msg: "Authentication success",
