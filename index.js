@@ -19,15 +19,16 @@ var apiRoutes = express.Router();
 // ユーザー登録
 app.post("/api/register", [
   check('postUserId').isAlphanumeric(),
-  check('postUserId').isLength({max: 8}),
+  check('postUserId').isLength({min: 8, max: 8}),
   check('postUserPass').isAlphanumeric(),
   check('postUserPass').isLength({min: 8, max: 8})
 ],(req, res) => {
   console.log("/api/register");
   if (!validationResult(req).isEmpty()) {
     console.log(validationResult(req).array());
+    console.log("Invalid user id or password");
     return res.status(422).json({
-      msg: "Invalid user id or password"
+      token: "-1"
     });
   }
   var users = {
@@ -49,8 +50,9 @@ app.post("/api/register", [
         });
         console.log(target);
         if (target != undefined) {
+          console.log("This user id is already used");
           return res.json({
-            msg: "This user id is already used"
+            token: "-2"
           });
         }
       } catch(err) {
@@ -69,15 +71,15 @@ app.post("/api/register", [
       }
       var user_id = String(users.id);
       var token = jwt.sign(user_id, app.get("superSecret"));
+      console.log("Registration success");
       return res.json({
-        msg: "Registration success",
         token: token
       });
     }
   });
 });
 
-// トークン発行
+// トークン発行、ログイン
 apiRoutes.post("/authenticate", (req, res) => {
   console.log("/api/authenticate");
   db.pool.connect(async (err, client) => {
@@ -106,14 +108,15 @@ apiRoutes.post("/authenticate", (req, res) => {
         if (users.id == users_list[i].id && users.pass == users_list[i].pass) {
           var user_id = String(users.id);
           var token = jwt.sign(user_id, app.get("superSecret"));
+          console.log("Authentication success");
           return res.json({
-            msg: "Authentication success",
             token: token
           });
         }
       }
+      console.log("Invalid user id or password");
       res.json({
-        msg: "Invalid user id or password",
+        token: "-1"
       });
     }
   });
@@ -124,6 +127,7 @@ apiRoutes.use((req, res, next) => {
   var token = req.body.token;
   if (!token) {
     res.json({
+      errNum: "99",
       msg: "No token provided"
     });
   }
@@ -131,6 +135,7 @@ apiRoutes.use((req, res, next) => {
     if (err) {
       console.log(err);
       return res.json({
+        errNum: "99",
         msg: "Invalid token"
       });
     }
@@ -163,11 +168,13 @@ apiRoutes.post("/list", (req, res) => {
         msg: "Fail to connect to database"
       });
     } else {
-      var card_ary;
+      var card_ary = [];
       try {
         var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
-        console.log(result.rows);
-        card_ary = result.rows;
+        for (var i = 0; i < result.rows.length; i++) {
+          card_ary.push({id: String(result.rows[i].fk_card_id)});
+        }
+        console.log(card_ary);
       } catch (err) {
         console.log(err.stack);
         res.json({
@@ -176,9 +183,9 @@ apiRoutes.post("/list", (req, res) => {
       }
 
       if (card_ary[0] != null && card_ary[0] != undefined){
-        var slct = "id =" + card_ary[0].fk_card_id;
+        var slct = "id =" + card_ary[0].id;
         for (var i = 1; i < card_ary.length; i++) {
-          slct += " OR id = " + card_ary[i].fk_card_id;
+          slct += " OR id = " + card_ary[i].id;
         }
         try {
           var result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
@@ -187,7 +194,7 @@ apiRoutes.post("/list", (req, res) => {
             card_ary[i].name = result.rows[i].name;
             card_ary[i].img = String(result.rows[i].img);
             card_ary[i].info = result.rows[i].info;
-            card_ary[i].fk_card_id = String(card_ary[i].fk_card_id);
+            card_ary[i].id = String(card_ary[i].id);
             card_ary[i].point = String(card_ary[i].point);
           }
         } catch (err) {
@@ -200,8 +207,18 @@ apiRoutes.post("/list", (req, res) => {
           cardAry: card_ary
         });
       } else {
+        var card_ary_none = [
+          {
+            name: "",
+            img: "",
+            info: "",
+            id: "",
+            point: ""
+          }
+        ];
+        console.log("The user has no card");
         res.json({
-          msg: "The user has no card"
+          cardAry: card_ary_none
         });
       }
     }
@@ -226,12 +243,19 @@ apiRoutes.post("/works", (req, res) => {
       try {
         var result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1", [user_id]);
         if (result.rows[0] == null) {
+          console.log("This user has no created card");
+          var created_cards_none = [{
+            id: "",
+            name: "",
+            img: "",
+            info: "",
+            url: ""
+          }];
           return res.json({
-            msg: "This user has no created card"
+            createdCards: created_cards_none
           });
         }
         for (var i = 0; i < result.rows.length; i++) {
-          // created_cards[i].id = String(result.rows[i].fk_card_id);
           created_cards.push({id: String(result.rows[i].fk_card_id)});
         }
       } catch (err) {
