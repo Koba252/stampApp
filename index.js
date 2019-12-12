@@ -172,7 +172,8 @@ apiRoutes.post("/list", (req, res) => {
       try {
         var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
         for (var i = 0; i < result.rows.length; i++) {
-          card_ary.push({id: String(result.rows[i].fk_card_id)});
+          card_ary.push({id: result.rows[i].fk_card_id});
+          card_ary.push({point: result.rows[i].point});
         }
         console.log(card_ary);
       } catch (err) {
