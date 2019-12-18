@@ -173,7 +173,6 @@ apiRoutes.post("/list", (req, res) => {
         var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
         for (var i = 0; i < result.rows.length; i++) {
           card_ary.push({id: result.rows[i].fk_card_id, point: result.rows[i].point});
-          // card_ary.push({point: result.rows[i].point});
         }
         console.log(card_ary);
       } catch (err) {
@@ -307,6 +306,15 @@ apiRoutes.post("/create", (req, res, next) => {
   }
   console.log(user_id);
   console.log(cards);
+  if (cards.name == null || cards.img == null || cards.info == null || cards.name == "" || cards.img == "" || cards.info == "") {
+    return res.json({
+      cardName: "Card name or img or info is null",
+      cardImg: "",
+      cardInfo: "",
+      cardUrl : "",
+      cardId: ""
+    });
+  }
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
@@ -374,6 +382,15 @@ apiRoutes.post("/edit", (req, res, next) => {
   }
   console.log(user_id);
   console.log(cards);
+  if (cards.name == null || cards.img == null || cards.info == null || cards.name == "" || cards.img == "" || cards.info == "") {
+    return res.json({
+      cardName: "Card name or img or info is null",
+      cardImg: "",
+      cardInfo: "",
+      cardUrl : "",
+      cardId: ""
+    });
+  }
   db.pool.connect( async (err, client) => {
     if (err) {
       console.log(err);
