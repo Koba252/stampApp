@@ -248,9 +248,12 @@ apiRoutes.post("/list", (req, res, next) => {
     }
   })().catch(next);
   });
-  console.log("Skip connection");
-  
 });
+
+app.use((err, req, res, next) => {
+  console.log(err.stack);
+  res.status(500).send("Internal Server Error");
+})
 
 // 作成カード一覧取得
 apiRoutes.post("/works", (req, res) => {
