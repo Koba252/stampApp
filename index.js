@@ -46,51 +46,90 @@ app.post("/api/register", [
   var users = {
     id: req.body.postUserId,
     pass: req.body.postUserPass
-  }
-  db.pool.connect( async (err, client) =>{
-    if (err) {
-      console.log(err);
-      res.json({
-        msg: "Fail to connect to database"
-      });
-    } else {
-      var result;
-      try {
-        result = await client.query("SELECT id FROM users");
-        console.log(result.rows);
-      } catch(err) {
-        console.log(err.stack);
-        res.json({
-          msg: "Fail to get user id"
-        });
-      }
+  };
+  
+  ( async () => {
+    const client = await db.pool.connect();
+    try {
+      await client.query("BEGIN");
+      var result = await client.query("SELECT id FROM users");
       var target = result.rows.find((item) => {
         return (item.id === users.id);
       });
-      console.log(target);
       if (target != undefined) {
+        await client.query("COMMIT");
         console.log("This user id is already used");
-        return res.json({
+        res.json({
           token: "-2"
         });
-      }
-
-      try {
+      } else {
         client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [users.id, users.pass]);
-      } catch(err) {
-        console.log(err.stack);
-        res.json({
-          msg: "Fail to add user data"
-        });
-      }
-      var user_id = String(users.id);
-      var token = jwt.sign(user_id, app.get("superSecret"));
-      console.log("Registration success");
-      return res.json({
+        var user_id = String(users.id);
+        var token = jwt.sign(user_id, app.get("superSecret"));
+        await client.query("COMMIT");
+        console.log("Registration success");
+        return res.json({
         token: token
       });
+      }
+    } catch (err) {
+      console.log("Fail to create account");
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
+  })().catch(err => {
+    console.log(err.stack);
+    res.json({
+      msg: "Fail to create account"
+    });
   });
+
+  // db.pool.connect( async (err, client) =>{
+  //   if (err) {
+  //     console.log(err);
+  //     res.json({
+  //       msg: "Fail to connect to database"
+  //     });
+  //   } else {
+  //     var result;
+  //     try {
+  //       result = await client.query("SELECT id FROM users");
+  //       console.log(result.rows);
+  //     } catch(err) {
+  //       console.log(err.stack);
+  //       res.json({
+  //         msg: "Fail to get user id"
+  //       });
+  //     }
+  //     var target = result.rows.find((item) => {
+  //       return (item.id === users.id);
+  //     });
+  //     console.log(target);
+  //     if (target != undefined) {
+  //       console.log("This user id is already used");
+  //       return res.json({
+  //         token: "-2"
+  //       });
+  //     }
+
+  //     try {
+  //       client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [users.id, users.pass]);
+  //     } catch(err) {
+  //       console.log(err.stack);
+  //       res.json({
+  //         msg: "Fail to add user data"
+  //       });
+  //     }
+  //     var user_id = String(users.id);
+  //     var token = jwt.sign(user_id, app.get("superSecret"));
+  //     console.log("Registration success");
+  //     return res.json({
+  //       token: token
+  //     });
+  //   }
+  // });
 });
 
 // トークン発行、ログイン
