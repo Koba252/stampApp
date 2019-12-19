@@ -175,6 +175,50 @@ apiRoutes.get("/test", (req, res) => {
   });
 });
 
+// new list
+apiRoutes.post("/listest", (req, res) => {
+  console.log("/api/listest");
+  var token = req.body.token;
+  var decoded = jwt.decode(token, {complete: true});
+  var user_id = decoded.payload;
+  (async () => {
+    const client = await db.pool.connect();
+
+    try {
+      var card_ary = [];
+      var result;
+      await client.query("BEGIN");
+      result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
+      for (var i = 0; i < result.rows.length; i++) {
+        card_ary.push({id: result.rows[i].fk_card_id, point: result.rows[i].point});
+      }
+      var slct = "id =" + card_ary[0].id;
+      for (var i = 1; i < card_ary.length; i++) {
+        slct += " OR id = " + card_ary[i].id;
+      }
+      result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
+      for (var i = 0; i < card_ary.length; i++) {
+        card_ary[i].name = result.rows[i].name;
+        card_ary[i].img = String(result.rows[i].img);
+        card_ary[i].info = result.rows[i].info;
+        card_ary[i].id = String(card_ary[i].id);
+        card_ary[i].point = String(card_ary[i].point);
+      }
+      await client.query("COMMIT");
+      res.json({
+        cardAry: card_ary
+      });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      return res.json({
+        msg: "fail"
+      });
+    } finally {
+      client.release();
+    }
+  })().catch(err => console.log(err.stack));
+});
+
 // 所持カード一覧取得
 apiRoutes.post("/list", (req, res, next) => {
   console.log("/api/list");
