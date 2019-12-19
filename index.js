@@ -5,13 +5,25 @@ require('dotenv').config();
 const port = process.env.PORT || 3000;
 const jwt = require("jsonwebtoken");
 const {check, validationResult} = require("express-validator");
+const timeout = require("express-timeout-handler");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+var options = {
+  timeout: 1000 * 15,
+  onTimeout: (req, res) => {
+    res.status(503).json({
+      msg: "Timeout err"
+    });
+  }
+};
+
+app.use(timeout.handler(options));
+
 app.listen(port, () => {
   console.log("Start sever port: " + port);
-}).timeout = 1000 * 20;
+});
 
 app.set("superSecret", process.env.ENV_SSECRET);
 var apiRoutes = express.Router();
