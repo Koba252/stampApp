@@ -11,7 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.listen(port, () => {
   console.log("Start sever port: " + port);
-});
+}).timeout = 1000 * 20;
 
 app.set("superSecret", process.env.ENV_SSECRET);
 var apiRoutes = express.Router();
