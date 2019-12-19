@@ -417,7 +417,7 @@ apiRoutes.post("/works", (req, res) => {
           info: "",
           url: ""
         }];
-        await client("COMMIT");
+        await client.query("COMMIT");
         console.log(created_cards_none);
         console.log("success!");
         res.json({
