@@ -183,8 +183,9 @@ apiRoutes.post("/list", (req, res) => {
   var user_id = decoded.payload;
   db.pool.connect( async (err, client) => {
     if (err) {
+      console.log("Fail to connect");
       console.log(err);
-      res.json({
+      return res.json({
         msg: "Fail to connect to database"
       });
     } else {
@@ -244,6 +245,9 @@ apiRoutes.post("/list", (req, res) => {
         });
       }
     }
+  });
+  res.json({
+    msg: "Skip connecting db"
   });
 });
 
