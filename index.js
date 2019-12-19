@@ -314,7 +314,7 @@ apiRoutes.post("/list", (req, res) => {
 
 // 作成カード一覧取得
 
-apiRoutes.post("works", (req, res) => {
+apiRoutes.post("/works", (req, res) => {
   console.log("/api/works");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
