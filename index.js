@@ -183,7 +183,7 @@ apiRoutes.post("/list", (req, res) => {
       var card_ary = [];
       var result;
       await client.query("BEGIN");
-      result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
+      result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1 ORDER BY fk_card_id", [user_id]);
       if (result.rows[0] == null) {
         var card_ary_none = [{
           name: "",
@@ -206,7 +206,7 @@ apiRoutes.post("/list", (req, res) => {
         for (var i = 1; i < card_ary.length; i++) {
           slct += " OR id = " + card_ary[i].id;
         }
-        result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
+        result = await client.query("SELECT name, img, info FROM cards WHERE " + slct + " ORDER BY id");
         for (var i = 0; i < card_ary.length; i++) {
           card_ary[i].name = result.rows[i].name;
           card_ary[i].img = String(result.rows[i].img);
@@ -326,7 +326,7 @@ apiRoutes.post("/works", (req, res) => {
       var created_cards = [];
       var result;
       await client.query("BEGIN");
-      result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1", [user_id]);
+      result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1 ORDER BY fk_card_id", [user_id]);
       if (result.rows[0] == null) {
         var created_cards_none = [{
           id: "",
@@ -349,7 +349,7 @@ apiRoutes.post("/works", (req, res) => {
         for (var i = 1; i < created_cards.length; i++) {
           slct += " OR id = " + created_cards[i].id;
         }
-        result = await client.query("SELECT name, img, info, url FROM cards WHERE " + slct);
+        result = await client.query("SELECT name, img, info, url FROM cards WHERE " + slct + " ORDER BY id");
         for (var i = 0; i < result.rows.length; i++) {
           created_cards[i].name = result.rows[i].name;
           created_cards[i].img = String(result.rows[i].img);
