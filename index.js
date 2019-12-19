@@ -176,12 +176,13 @@ apiRoutes.get("/test", (req, res) => {
 });
 
 // 所持カード一覧取得
-apiRoutes.post("/list", (req, res) => {
+apiRoutes.post("/list", (req, res, next) => {
   console.log("/api/list");
   var token = req.body.token;
   var decoded = jwt.decode(token, {complete: true});
   var user_id = decoded.payload;
-  db.pool.connect( async (err, client) => {
+  db.pool.connect( (err, client) => {
+    (async () => {
     if (err) {
       console.log("Fail to connect");
       console.log(err);
@@ -245,10 +246,10 @@ apiRoutes.post("/list", (req, res) => {
         });
       }
     }
+  })().catch(next);
   });
-  res.json({
-    msg: "Skip connecting db"
-  });
+  console.log("Skip connection");
+  
 });
 
 // 作成カード一覧取得
