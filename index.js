@@ -16,7 +16,13 @@ var options = {
     res.status(503).json({
       msg: "Timeout err"
     });
-  }
+  },
+  onDelayedResponse: function(req, method, args, requestTime) {
+    console.log(`Attempted to call ${method} after timeout`);
+    console.log(args);
+    console.log(requestTime);
+  },
+  disable: ['write', 'setHeaders', 'send', 'json', 'end']
 };
 
 app.use(timeout.handler(options));
