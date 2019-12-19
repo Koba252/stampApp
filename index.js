@@ -188,6 +188,7 @@ apiRoutes.post("/list", (req, res) => {
         msg: "Fail to connect to database"
       });
     } else {
+      console.log("connect success!");
       var card_ary = [];
       var result;
       try {
