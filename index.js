@@ -42,25 +42,27 @@ app.post("/api/register", [
         msg: "Fail to connect to database"
       });
     } else {
+      var result;
       try {
-        var result = await client.query("SELECT id FROM users");
+        result = await client.query("SELECT id FROM users");
         console.log(result.rows);
-        var target = result.rows.find((item) => {
-          return (item.id === users.id);
-        });
-        console.log(target);
-        if (target != undefined) {
-          console.log("This user id is already used");
-          return res.json({
-            token: "-2"
-          });
-        }
       } catch(err) {
         console.log(err.stack);
         res.json({
           msg: "Fail to get user id"
         });
       }
+      var target = result.rows.find((item) => {
+        return (item.id === users.id);
+      });
+      console.log(target);
+      if (target != undefined) {
+        console.log("This user id is already used");
+        return res.json({
+          token: "-2"
+        });
+      }
+
       try {
         client.query("INSERT INTO users (id, pass) VALUES ($1, $2)", [users.id, users.pass]);
       } catch(err) {
@@ -169,18 +171,19 @@ apiRoutes.post("/list", (req, res) => {
       });
     } else {
       var card_ary = [];
+      var result;
       try {
-        var result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
-        for (var i = 0; i < result.rows.length; i++) {
-          card_ary.push({id: result.rows[i].fk_card_id, point: result.rows[i].point});
-        }
-        console.log(card_ary);
+        result = await client.query("SELECT fk_card_id, point FROM possessions WHERE fk_user_id = $1", [user_id]);
       } catch (err) {
         console.log(err.stack);
-        res.json({
+        return res.json({
           msg: "Fail to get possessions data"
         });
       }
+      for (var i = 0; i < result.rows.length; i++) {
+        card_ary.push({id: result.rows[i].fk_card_id, point: result.rows[i].point});
+      }
+      console.log(card_ary);
 
       if (card_ary[0] != null && card_ary[0] != undefined){
         var slct = "id =" + card_ary[0].id;
@@ -188,20 +191,20 @@ apiRoutes.post("/list", (req, res) => {
           slct += " OR id = " + card_ary[i].id;
         }
         try {
-          var result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
+          result = await client.query("SELECT name, img, info FROM cards WHERE " + slct);
           console.log(result.rows);
-          for (var i = 0; i < card_ary.length; i++) {
-            card_ary[i].name = result.rows[i].name;
-            card_ary[i].img = String(result.rows[i].img);
-            card_ary[i].info = result.rows[i].info;
-            card_ary[i].id = String(card_ary[i].id);
-            card_ary[i].point = String(card_ary[i].point);
-          }
         } catch (err) {
           console.log(err.stack);
           res.json({
             msg: "Fail to get cards data"
           });
+        }
+        for (var i = 0; i < card_ary.length; i++) {
+          card_ary[i].name = result.rows[i].name;
+          card_ary[i].img = String(result.rows[i].img);
+          card_ary[i].info = result.rows[i].info;
+          card_ary[i].id = String(card_ary[i].id);
+          card_ary[i].point = String(card_ary[i].point);
         }
         res.json({
           cardAry: card_ary
@@ -240,48 +243,50 @@ apiRoutes.post("/works", (req, res) => {
       });
     } else {
       var created_cards = [];
+      var result;
       try {
-        var result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1", [user_id]);
-        if (result.rows[0] == null) {
-          console.log("This user has no created card");
-          var created_cards_none = [{
-            id: "",
-            name: "",
-            img: "",
-            info: "",
-            url: ""
-          }];
-          return res.json({
-            createdCards: created_cards_none
-          });
-        }
-        for (var i = 0; i < result.rows.length; i++) {
-          created_cards.push({id: String(result.rows[i].fk_card_id)});
-        }
+        result = await client.query("SELECT fk_card_id FROM admins WHERE fk_user_id = $1", [user_id]);
       } catch (err) {
         console.log(err.stack);
         return res.json({
           msg: "Fail to get admins data"
         });
       }
+      if (result.rows[0] == null) {
+        console.log("This user has no created card");
+        var created_cards_none = [{
+          id: "",
+          name: "",
+          img: "",
+          info: "",
+          url: ""
+        }];
+        return res.json({
+          createdCards: created_cards_none
+        });
+      }
+      for (var i = 0; i < result.rows.length; i++) {
+        created_cards.push({id: String(result.rows[i].fk_card_id)});
+      }
       console.log(created_cards);
       var slct = "id =" + created_cards[0].id;
       for (var i = 1; i < created_cards.length; i++) {
         slct += " OR id = " + created_cards[i].id;
       }
+
       try {
-        var result = await client.query("SELECT name, img, info, url FROM cards WHERE " + slct);
-        for (var i = 0; i < result.rows.length; i++) {
-          created_cards[i].name = result.rows[i].name;
-          created_cards[i].img = String(result.rows[i].img);
-          created_cards[i].info = result.rows[i].info;
-          created_cards[i].url = String(result.rows[i].url);
-        }
+        result = await client.query("SELECT name, img, info, url FROM cards WHERE " + slct);
       } catch (err) {
         console.log(err.stack);
         return res.json({
           msg: "Fail to get cards data"
         });
+      }
+      for (var i = 0; i < result.rows.length; i++) {
+        created_cards[i].name = result.rows[i].name;
+        created_cards[i].img = String(result.rows[i].img);
+        created_cards[i].info = result.rows[i].info;
+        created_cards[i].url = String(result.rows[i].url);
       }
       console.log(created_cards);
       res.json({
