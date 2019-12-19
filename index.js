@@ -227,7 +227,7 @@ apiRoutes.post("/list", (req, res, next) => {
           card_ary[i].id = String(card_ary[i].id);
           card_ary[i].point = String(card_ary[i].point);
         }
-        db.pool.end();
+        db.client.end();
         res.json({
           cardAry: card_ary
         });
@@ -241,7 +241,7 @@ apiRoutes.post("/list", (req, res, next) => {
             point: ""
           }
         ];
-        db.pool.end();
+        db.client.end();
         console.log("The user has no card");
         res.json({
           cardAry: card_ary_none
