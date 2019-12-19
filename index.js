@@ -135,45 +135,88 @@ app.post("/api/register", [
 // トークン発行、ログイン
 apiRoutes.post("/authenticate", (req, res) => {
   console.log("/api/authenticate");
-  db.pool.connect(async (err, client) => {
-    if (err) {
-      console.log(err);
-      res.json({
-        msg: "Fail to connect to database"
-      });
-    } else {
-      var users_list;
-      try {
-        var result = await client.query("SELECT id, pass FROM users");
-        console.log(result.rows);
-        users_list = result.rows;
-      } catch(err) {
-        console.log(err.stack);
-        res.json({
-          msg: "Fail to get user id"
-        });
-      }
-      var users = {
-        id: req.body.postUserId,
-        pass: req.body.postUserPass
-      }
+  var users = {
+    id: req.body.postUserId,
+    pass: req.body.postUserPass
+  };
+  (async () => {
+    const client = await db.pool.connect();
+    try {
+      await client.query("BEGIN");
+      var result = await client.query("SELECT id, pass FROM users");
+      var users_list = result.rows;
       for (var i = 0; i < users_list.length; i++) {
         if (users.id == users_list[i].id && users.pass == users_list[i].pass) {
           var user_id = String(users.id);
           var token = jwt.sign(user_id, app.get("superSecret"));
+          await client.query("COMMIT");
           console.log("Authentication success");
           return res.json({
             token: token
           });
         }
       }
+      await client.query("COMMIT");
       console.log("Invalid user id or password");
       res.json({
         token: "-1"
       });
+    } catch (err) {
+      console.log("Fail to authenticate");
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
-  });
+  })().catch(err => {
+    console.log(err.stack);
+    res.json({
+      msg: "Fail to authenticate"
+    });
+  })
 });
+
+// apiRoutes.post("/authenticate2", (req, res) => {
+//   console.log("/api/authenticate");
+//   db.pool.connect(async (err, client) => {
+//     if (err) {
+//       console.log(err);
+//       res.json({
+//         msg: "Fail to connect to database"
+//       });
+//     } else {
+//       var users_list;
+//       try {
+//         var result = await client.query("SELECT id, pass FROM users");
+//         console.log(result.rows);
+//         users_list = result.rows;
+//       } catch(err) {
+//         console.log(err.stack);
+//         res.json({
+//           msg: "Fail to get user id"
+//         });
+//       }
+//       var users = {
+//         id: req.body.postUserId,
+//         pass: req.body.postUserPass
+//       }
+//       for (var i = 0; i < users_list.length; i++) {
+//         if (users.id == users_list[i].id && users.pass == users_list[i].pass) {
+//           var user_id = String(users.id);
+//           var token = jwt.sign(user_id, app.get("superSecret"));
+//           console.log("Authentication success");
+//           return res.json({
+//             token: token
+//           });
+//         }
+//       }
+//       console.log("Invalid user id or password");
+//       res.json({
+//         token: "-1"
+//       });
+//     }
+//   });
+// });
 
 // 認証チェック
 apiRoutes.use((req, res, next) => {
